@@ -81,6 +81,8 @@
 	<true/>
 	<key>com.apple.private.security.storage.iCloudDrive</key>
 	<true/>
+	<key>com.apple.private.skip-library-validation</key>
+	<true/>
 	<key>com.apple.private.tcc.allow</key>
 	<array>
 		<string>kTCCServiceUbiquity</string>
@@ -114,6 +116,8 @@
 	<array>
 		<string>com.apple.lsd.modifydb</string>
 	</array>
+	<key>com.apple.security.exception.process-info.all.read-write</key>
+	<true/>
 	<key>com.apple.security.iokit-user-client-class</key>
 	<array>
 		<string>IOUserClient</string>
@@ -138,6 +142,8 @@
 	<true/>
 	<key>com.apple.springboard.openurlswhenlocked</key>
 	<true/>
+	<key>com.apple.system.task_for_pid_allow</key>
+	<true/>
 	<key>com.apple.usernotification.notificationregistrarproxy</key>
 	<true/>
 	<key>com.apple.usernotification.notificationschedulerproxy</key>
@@ -148,27 +154,19 @@
 	<true/>
 	<key>file-read-data</key>
 	<true/>
+	<key>get-task-allow</key>
+	<true/>
 	<key>inter-app-audio</key>
 	<true/>
 	<key>platform-application</key>
+	<true/>
+	<key>task_for_pid-allow</key>
 	<true/>
 	<key>uicache.app-data-container-required</key>
 	<true/>
 	<key>user-preference-read</key>
 	<true/>
 	<key>user-preference-write</key>
-    <true/>
-    <key>com.apple.security.exception.process-info.all.read-write</key>
-    <true/>
-    <key>get-task-allow</key>
-    <true/>
-    <key>task_for_pid-allow</key>
-    <true/>
-    <key>com.apple.system.task_for_pid_allow</key>
-    <true/>
-    <key>com.apple.private.skip-library-validation</key>
-    <true/>
-    <key>com.apple.private.security.disk-device-access</key>
-    <true/>
+	<true/>
 </dict>
 </plist>

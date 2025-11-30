@@ -1,12 +1,7 @@
 import SwiftUI
-import Foundation
-
-// Bridge to the C function in injection.c
-@_silgen_name("perform_injection")
-func perform_injection(_ path: UnsafePointer<CChar>, _ errorMsg: UnsafeMutablePointer<CChar>) -> Int32
 
 struct ContentView: View {
-    @State private var logs: String = "Ready to inject."
+    @State private var logs: String = "Ready."
     @State private var isBusy: Bool = false
 
     var body: some View {
@@ -26,25 +21,19 @@ struct ContentView: View {
             .padding(.horizontal)
 
             HStack(spacing: 20) {
-                Button(action: { runInjection() }) {
+                Button(action: { runAction(command: "inject") }) {
                     Text("Enable")
-                        .bold()
-                        .frame(maxWidth: .infinity)
-                        .padding()
+                        .bold().frame(maxWidth: .infinity).padding()
                         .background(isBusy ? Color.gray : Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .foregroundColor(.white).cornerRadius(10)
                 }
                 .disabled(isBusy)
 
-                Button(action: { runKill() }) {
+                Button(action: { runAction(command: "kill") }) {
                     Text("Disable")
-                        .bold()
-                        .frame(maxWidth: .infinity)
-                        .padding()
+                        .bold().frame(maxWidth: .infinity).padding()
                         .background(isBusy ? Color.gray : Color.red)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .foregroundColor(.white).cornerRadius(10)
                 }
                 .disabled(isBusy)
             }
@@ -56,49 +45,46 @@ struct ContentView: View {
         DispatchQueue.main.async { self.logs += text }
     }
 
-func runInjection() {
+    func runAction(command: String) {
         guard !isBusy else { return }
         isBusy = true
-        logs = "Locating agent.dylib...\n"
+        logs = "Running...\n"
         
         DispatchQueue.global(qos: .userInitiated).async {
-            guard let bundlePath = Bundle.main.path(forResource: "agent", ofType: "dylib") else {
-                self.appendLog("[Error] agent.dylib not found in bundle.\n")
-                DispatchQueue.main.async { self.isBusy = false }
-                return
+            do {
+                guard let helperPath = Bundle.main.path(forResource: "helper", ofType: nil) else {
+                    self.appendLog("[-] Helper binary not found.\n")
+                    DispatchQueue.main.async { self.isBusy = false }
+                    return
+                }
+                
+                var args = [command]
+                if command == "inject" {
+                    guard let agentPath = Bundle.main.path(forResource: "agent", ofType: "dylib") else {
+                        self.appendLog("[-] Agent dylib not found.\n")
+                        DispatchQueue.main.async { self.isBusy = false }
+                        return
+                    }
+                    args.append(agentPath)
+                }
+                
+                self.appendLog("[*] Spawning helper as root...\n")
+                
+                // Using the User-Provided Execute.swift Logic
+                let receipt = try Execute.rootSpawnWithOutputs(binary: helperPath, arguments: args)
+                
+                self.appendLog(receipt.stdout)
+                self.appendLog(receipt.stderr)
+                
+                if case .exit(let code) = receipt.terminationReason {
+                    self.appendLog("\n[Done] Exit Code: \(code)\n")
+                }
+                
+            } catch {
+                self.appendLog("[-] Error: \(error.localizedDescription)\n")
             }
-            
-            self.appendLog("Scanning processes...\n")
-            
-            // Prepare buffer for error messages
-            var errorBuffer = [CChar](repeating: 0, count: 512)
-            
-            let result = perform_injection(bundlePath, &errorBuffer)
-            let message = String(cString: errorBuffer)
-            
-            self.appendLog("\n[Result Code: \(result)]\n\(message)\n")
             
             DispatchQueue.main.async { self.isBusy = false }
         }
-    }
-
-    func runKill() {
-        guard !isBusy else { return }
-        isBusy = true
-        logs = "Restarting webinspectord...\n"
-        
-        // killall is simple enough to keep spawning, or we could bind kill() but this usually works fine
-        let receipt = AuxiliaryExecute.spawn(
-            command: "/usr/bin/killall",
-            args: ["webinspectord"],
-            timeout: 5
-        )
-        
-        if case .exit(let code) = receipt.terminationReason, code == 0 {
-            appendLog("[Success] Daemon killed.\n")
-        } else {
-            appendLog("[Failed] \(receipt.stderr)\n")
-        }
-        isBusy = false
     }
 }

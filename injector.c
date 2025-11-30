@@ -13,12 +13,14 @@ static int get_webinspectord_pid(char *out_error) {
     if (sysctl(mib, 2, &argmax, &size, NULL, 0) == -1) {
         argmax = 4096;
     }
+    snprintf(out_error, 512, "sysctl(mib, 2, &argmax, &size, NULL, 0) argmax = %zu", size);
+
 
     int proc_mib[3] = {CTL_KERN, KERN_PROC, KERN_PROC_ALL};
     size_t proc_len = 0;
     // Get size first
     if (sysctl(proc_mib, 3, NULL, &proc_len, NULL, 0) == -1) return -1;
-
+    snprintf(out_error, 512, "sysctl(proc_mib, 3, NULL, &proc_len, NULL, 0)");
     struct kinfo_proc *procs = malloc(proc_len);
     if (!procs) return -1;
     

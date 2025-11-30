@@ -35,10 +35,19 @@ agent_INSTALL_PATH = /Applications/TrollWebInspector.app
 # injector_CODESIGN_FLAGS = -STrollWebInspector.entitlements
 # injector_INSTALL_PATH = /Applications/TrollWebInspector.app
 
+# --- Helper (The Root Tool) ---
+TOOL_NAME = helper
+helper_FILES = helper.c
+helper_CFLAGS = -Wall -pipe -Ifrida-core -Os
+# Helper needs Frida Core to inject, and standard frameworks
+helper_LDFLAGS = -Lfrida-core -lfrida-core -lresolv -lobjc -Wl,-framework,Foundation,-framework,UIKit -Wl,-dead_strip
+helper_FRAMEWORKS = Foundation
+helper_INSTALL_PATH = /Applications/TrollWebInspector.app
+
 # --- App (The UI) ---
 APPLICATION_NAME = TrollWebInspector
 
-TrollWebInspector_FILES = AuxiliaryExecute.swift ContentView.swift TrollWebInspectorApp.swift injector.c
+TrollWebInspector_FILES = AuxiliaryExecute.swift AuxiliaryExecute+Spawn.swift Execute.swift ContentView.swift TrollWebInspectorApp.swift 
 TrollWebInspector_FRAMEWORKS = SwiftUI
 TrollWebInspector_CODESIGN_FLAGS = -TrollWebInspector.entitlements
 TrollWebInspector_CFLAGS = -Ifrida-core -Os
