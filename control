@@ -1,0 +1,9 @@
+Package: com.xx.webinspector
+Name: TrollWebInspector
+Version: 0.0.1
+Architecture: iphoneos-arm
+Description: An awesome SwiftUI application!
+Maintainer: xx
+Author: xx
+Section: Utilities
+Depends: firmware (>= 14.0)
