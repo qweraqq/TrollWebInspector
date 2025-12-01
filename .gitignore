@@ -114,3 +114,5 @@ frida-core/
 frida-gum/
 Payload/
 Resources/
+.cache/
+*.json

@@ -6,7 +6,7 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Web Inspector Enabler")
+            Text("Troll Web Inspector")
                 .font(.headline)
                 .padding(.top)
 
@@ -21,7 +21,7 @@ struct ContentView: View {
             .padding(.horizontal)
 
             HStack(spacing: 20) {
-                Button(action: { runAction(command: "inject") }) {
+                Button(action: { runInjection() }) {
                     Text("Enable")
                         .bold().frame(maxWidth: .infinity).padding()
                         .background(isBusy ? Color.gray : Color.blue)
@@ -29,7 +29,7 @@ struct ContentView: View {
                 }
                 .disabled(isBusy)
 
-                Button(action: { runAction(command: "kill") }) {
+                Button(action: { runKill() }) {
                     Text("Disable")
                         .bold().frame(maxWidth: .infinity).padding()
                         .background(isBusy ? Color.gray : Color.red)
@@ -45,45 +45,80 @@ struct ContentView: View {
         DispatchQueue.main.async { self.logs += text }
     }
 
-    func runAction(command: String) {
+    func runInjection() {
         guard !isBusy else { return }
         isBusy = true
-        logs = "Running...\n"
+        logs = "Starting...\n"
         
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                guard let helperPath = Bundle.main.path(forResource: "helper", ofType: nil) else {
-                    self.appendLog("[-] Helper binary not found.\n")
+                // 1. Locate Binaries
+                guard let injectorPath = Bundle.main.path(forResource: "injector", ofType: nil),
+                      let agentPath = Bundle.main.path(forResource: "agent", ofType: "dylib") else {
+                    self.appendLog("[-] Error: 'injector' or 'agent.dylib' not found in Bundle.\n")
                     DispatchQueue.main.async { self.isBusy = false }
                     return
                 }
                 
-                var args = [command]
-                if command == "inject" {
-                    guard let agentPath = Bundle.main.path(forResource: "agent", ofType: "dylib") else {
-                        self.appendLog("[-] Agent dylib not found.\n")
-                        DispatchQueue.main.async { self.isBusy = false }
-                        return
-                    }
-                    args.append(agentPath)
+                // 2. Find PID (using our C utility)
+                self.appendLog("[*] Searching for webinspectord...\n")
+                let pid = PidForName("webinspectord")
+                
+                if pid <= 0 {
+                    self.appendLog("[-] webinspectord not found. Please enable Web Inspector in Safari Settings and try again.\n")
+                    DispatchQueue.main.async { self.isBusy = false }
+                    return
                 }
+                self.appendLog("[+] Found webinspectord at PID \(pid)\n")
                 
-                self.appendLog("[*] Spawning helper as root...\n")
+                // 3. Construct Command
+                // injector -p <pid> -f agent.dylib -e entry_main
+                let args = [
+                    "-p", "\(pid)",
+                    "-f", agentPath,
+                    "-e", "entry_main"
+                ]
                 
-                // Using the User-Provided Execute.swift Logic
-                let receipt = try Execute.rootSpawnWithOutputs(binary: helperPath, arguments: args)
+                self.appendLog("[*] Running: injector \(args.joined(separator: " "))\n")
+                
+                // 4. Execute as Root
+                let receipt = try Execute.rootSpawnWithOutputs(binary: injectorPath, arguments: args)
                 
                 self.appendLog(receipt.stdout)
-                self.appendLog(receipt.stderr)
+                if !receipt.stderr.isEmpty {
+                    self.appendLog("[stderr] \(receipt.stderr)\n")
+                }
                 
                 if case .exit(let code) = receipt.terminationReason {
-                    self.appendLog("\n[Done] Exit Code: \(code)\n")
+                    if code == 0 {
+                        self.appendLog("[+] Injection Successful!\n")
+                    } else {
+                        self.appendLog("[-] Injector exited with code \(code).\n")
+                    }
                 }
                 
             } catch {
-                self.appendLog("[-] Error: \(error.localizedDescription)\n")
+                self.appendLog("[-] Exception: \(error.localizedDescription)\n")
             }
             
+            DispatchQueue.main.async { self.isBusy = false }
+        }
+    }
+
+    func runKill() {
+        guard !isBusy else { return }
+        isBusy = true
+        logs = "Killing webinspectord...\n"
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            let pid = PidForName("webinspectord")
+            if pid > 0 {
+                // kill -9 <pid>
+                let _ = try? Execute.rootSpawnWithOutputs(binary: "/bin/kill", arguments: ["-9", "\(pid)"])
+                self.appendLog("[+] Process killed. It should restart automatically.\n")
+            } else {
+                self.appendLog("[-] Process not found.\n")
+            }
             DispatchQueue.main.async { self.isBusy = false }
         }
     }
