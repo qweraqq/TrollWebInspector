@@ -16,6 +16,9 @@ else
     exit 1
 fi
 
+cp -r .theos/obj/RootHelper Payload/TrollWebInspector.app/RootHelper
+chmod 755 Payload/TrollWebInspector.app/RootHelper
+./ldid -STrollWebInspector.entitlements Payload/TrollWebInspector.app/RootHelper
 chmod 755 Payload/TrollWebInspector.app/TrollWebInspector
 chmod 755 Payload/TrollWebInspector.app/injector
 ./ldid -STrollWebInspector.entitlements Payload/TrollWebInspector.app/TrollWebInspector

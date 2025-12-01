@@ -80,22 +80,28 @@ struct ContentView: View {
                 ]
                 
                 self.appendLog("[*] Running: injector \(args.joined(separator: " "))\n")
-                
-                // 4. Execute as Root
-                let receipt = try Execute.rootSpawnWithOutputs(binary: injectorPath, arguments: args)
-                
-                self.appendLog(receipt.stdout)
-                if !receipt.stderr.isEmpty {
-                    self.appendLog("[stderr] \(receipt.stderr)\n")
+                let result = RootExecutor.run(binary: injectorPath, arguments: args)
+
+                if result == 0 {
+                    self.appendLog("injector successfully!")
+                } else {
+                    self.appendLog("Failed to injector. Exit code: \(result)")
                 }
+                // // 4. Execute as Root
+                // let receipt = try Execute.rootSpawnWithOutputs(binary: injectorPath, arguments: args)
                 
-                if case .exit(let code) = receipt.terminationReason {
-                    if code == 0 {
-                        self.appendLog("[+] Injection Successful!\n")
-                    } else {
-                        self.appendLog("[-] Injector exited with code \(code).\n")
-                    }
-                }
+                // self.appendLog(receipt.stdout)
+                // if !receipt.stderr.isEmpty {
+                //     self.appendLog("[stderr] \(receipt.stderr)\n")
+                // }
+                
+                // if case .exit(let code) = receipt.terminationReason {
+                //     if code == 0 {
+                //         self.appendLog("[+] Injection Successful!\n")
+                //     } else {
+                //         self.appendLog("[-] Injector exited with code \(code).\n")
+                //     }
+                // }
                 
             } catch {
                 self.appendLog("[-] Exception: \(error.localizedDescription)\n")
